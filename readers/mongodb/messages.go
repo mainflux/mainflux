@@ -5,7 +5,6 @@ package mongodb
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/mainflux/mainflux/pkg/errors"
 	"github.com/mainflux/mainflux/pkg/transformers/senml"
@@ -36,12 +35,12 @@ func New(db *mongo.Database) readers.MessageRepository {
 	}
 }
 
-func (repo mongoRepository) ReadAll(chanID string, rpm readers.PageMetadata) (readers.MessagesPage, error) {
+func (repo mongoRepository) ReadAll(pm readers.PageMetadata) (readers.MessagesPage, error) {
 	format := defCollection
 	order := "time"
-	if rpm.Format != "" && rpm.Format != defCollection {
+	if pm.Format != "" && pm.Format != defCollection {
 		order = "created"
-		format = rpm.Format
+		format = pm.Format
 	}
 
 	col := repo.db.Collection(format)
@@ -50,8 +49,8 @@ func (repo mongoRepository) ReadAll(chanID string, rpm readers.PageMetadata) (re
 		order: -1,
 	}
 	// Remove format filter and format the rest properly.
-	filter := fmtCondition(chanID, rpm)
-	cursor, err := col.Find(context.Background(), filter, options.Find().SetSort(sortMap).SetLimit(int64(rpm.Limit)).SetSkip(int64(rpm.Offset)))
+	filter := fmtCondition(pm)
+	cursor, err := col.Find(context.Background(), filter, options.Find().SetSort(sortMap).SetLimit(int64(pm.Limit)).SetSkip(int64(pm.Offset)))
 	if err != nil {
 		return readers.MessagesPage{}, errors.Wrap(errReadMessages, err)
 	}
@@ -85,7 +84,7 @@ func (repo mongoRepository) ReadAll(chanID string, rpm readers.PageMetadata) (re
 	}
 
 	mp := readers.MessagesPage{
-		PageMetadata: rpm,
+		PageMetadata: pm,
 		Total:        uint64(total),
 		Messages:     messages,
 	}
@@ -93,22 +92,15 @@ func (repo mongoRepository) ReadAll(chanID string, rpm readers.PageMetadata) (re
 	return mp, nil
 }
 
-func fmtCondition(chanID string, rpm readers.PageMetadata) bson.D {
+func fmtCondition(pm readers.PageMetadata) bson.D {
 	filter := bson.D{
 		bson.E{
 			Key:   "channel",
-			Value: chanID,
+			Value: pm.ChanID,
 		},
 	}
 
-	var query map[string]interface{}
-	meta, err := json.Marshal(rpm)
-	if err != nil {
-		return filter
-	}
-	json.Unmarshal(meta, &query)
-
-	for name, value := range query {
+	for name, value := range pm.Query {
 		switch name {
 		case
 			"channel",
@@ -119,7 +111,7 @@ func fmtCondition(chanID string, rpm readers.PageMetadata) bson.D {
 			filter = append(filter, bson.E{Key: name, Value: value})
 		case "v":
 			bsonFilter := value
-			val, ok := query["comparator"]
+			val, ok := pm.Query["comparator"]
 			if ok {
 				switch val.(string) {
 				case readers.EqualKey:
