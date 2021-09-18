@@ -6,6 +6,7 @@ import (
 	"time"
 
 	influxdata "github.com/influxdata/influxdb/client/v2"
+
 	iwriter "github.com/mainflux/mainflux/consumers/writers/influxdb"
 	"github.com/mainflux/mainflux/pkg/transformers/json"
 	"github.com/mainflux/mainflux/pkg/transformers/senml"
@@ -498,6 +499,7 @@ func TestReadJSON(t *testing.T) {
 
 	for desc, tc := range cases {
 		result, err := reader.ReadAll(tc.chanID, tc.pageMeta)
+		require.NoError(t, err)
 
 		for i := 0; i < len(result.Messages); i++ {
 			m := result.Messages[i]
@@ -506,7 +508,6 @@ func TestReadJSON(t *testing.T) {
 
 			result.Messages[i] = m
 		}
-		assert.Nil(t, err, fmt.Sprintf("%s: expected no error got %s", desc, err))
 		assert.ElementsMatch(t, tc.page.Messages, result.Messages, fmt.Sprintf("%s: expected \n%v got \n%v", desc, tc.page.Messages, result.Messages))
 		assert.Equal(t, tc.page.Total, result.Total, fmt.Sprintf("%s: expected %v got %v", desc, tc.page.Total, result.Total))
 	}
