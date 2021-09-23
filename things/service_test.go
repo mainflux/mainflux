@@ -24,12 +24,14 @@ const (
 	token      = "token"
 	token2     = "token2"
 	n          = uint64(10)
-	Prefix     = "fe6b4e92-cc98-425e-b0aa-"
+	prefix     = "fe6b4e92-cc98-425e-b0aa-"
 )
 
 var (
-	thingList = [n]things.Thing{}
-	channel = things.Channel{Name: "test"}
+	thingList  = [n]things.Thing{}
+	channel    = things.Channel{Name: "test"}
+	thsExtID   = []things.Thing{{ID: "fe6b4e92-cc98-425e-b0aa-000000000001", Name: "a"}, {ID: "fe6b4e92-cc98-425e-b0aa-000000000002", Name: "b"}}
+	chsExtID   = []things.Channel{{ID: "fe6b4e92-cc98-425e-b0aa-000000000001", Name: "a"}, {ID: "fe6b4e92-cc98-425e-b0aa-000000000002", Name: "b"}}
 )
 
 func newService(tokens map[string]string) things.Service {
@@ -47,15 +49,13 @@ func newService(tokens map[string]string) things.Service {
 func TestInit(t *testing.T) {
 	for i := uint64(0); i < n; i++ {
 		thingList[i].Name = fmt.Sprintf("name-%d", i + 1)
-		thingList[i].ID = fmt.Sprintf("%s%012d", Prefix, i + 1)
-		thingList[i].Key = fmt.Sprintf("%s1%011d", Prefix, i + 1)
+		thingList[i].ID = fmt.Sprintf("%s%012d", prefix, i + 1)
+		thingList[i].Key = fmt.Sprintf("%s1%011d", prefix, i + 1)
 	}
 }
 
 func TestCreateThings(t *testing.T) {
 	svc := newService(map[string]string{token: email})
-	meta := things.Metadata{}
-	meta["type"] = "extid"
 
 	cases := []struct {
 		desc   string
@@ -77,15 +77,13 @@ func TestCreateThings(t *testing.T) {
 		},
 		{
 			desc:   "create new things with external UUID",
-			things: []things.Thing{{ID: "fe6b4e92-cc98-425e-b0aa-000000000001", Name: "a", Metadata: meta},
-				{ID: "fe6b4e92-cc98-425e-b0aa-000000000002", Name: "b", Metadata: meta}},
+			things: thsExtID,
 			token:  token,
 			err:    nil,
 		},
 		{
 			desc:   "create new things with external wrong UUID",
-			things: []things.Thing{{ID: "b0aa-000000000001", Name: "a", Metadata: meta},
-				{ID: "b0aa-000000000002", Name: "b", Metadata: meta}},
+			things: []things.Thing{{ID: "b0aa-000000000001", Name: "a"}, {ID: "b0aa-000000000002", Name: "b"}},
 			token:  token,
 			err:    nil,
 		},
@@ -561,8 +559,6 @@ func TestRemoveThing(t *testing.T) {
 
 func TestCreateChannels(t *testing.T) {
 	svc := newService(map[string]string{token: email})
-	meta := things.Metadata{}
-	meta["type"] = "extid"
 
 	cases := []struct {
 		desc     string
@@ -584,15 +580,13 @@ func TestCreateChannels(t *testing.T) {
 		},
 		{
 			desc:   "create new channels with external UUID",
-			channels: []things.Channel{{ID: "fe6b4e92-cc98-425e-b0aa-000000000001", Name: "a", Metadata: meta},
-				{ID: "fe6b4e92-cc98-425e-b0aa-000000000002", Name: "b", Metadata: meta}},
+			channels: chsExtID,
 			token:  token,
 			err:    nil,
 		},
 		{
 			desc:   "create new channels with external wrong UUID",
-			channels: []things.Channel{{ID: "b0aa-000000000001", Name: "a", Metadata: meta},
-				{ID: "b0aa-000000000002", Name: "b", Metadata: meta}},
+			channels: []things.Channel{{ID: "b0aa-000000000001", Name: "a"}, {ID: "b0aa-000000000002", Name: "b"}},
 			token:  token,
 			err:    nil,
 		},
