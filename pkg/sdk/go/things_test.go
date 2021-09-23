@@ -28,14 +28,13 @@ const (
 	wrongValue  = "wrong_value"
 	badID       = "999"
 	emptyValue  = ""
-
-	keyPrefix = "123e4567-e89b-12d3-a456-"
 )
 
 var (
 	metadata   = map[string]interface{}{"meta": "data"}
 	metadata2  = map[string]interface{}{"meta": "data2"}
-	thing      = sdk.Thing{ID: "001", Name: "test_device", Metadata: metadata}
+	th1        = sdk.Thing{ID: "fe6b4e92-cc98-425e-b0aa-000000000001", Name: "test1", Metadata: metadata}
+	th2        = sdk.Thing{ID: "fe6b4e92-cc98-425e-b0aa-000000000002", Name: "test2", Metadata: metadata}
 	emptyThing = sdk.Thing{}
 )
 
@@ -78,28 +77,28 @@ func TestCreateThing(t *testing.T) {
 	}{
 		{
 			desc:     "create new thing",
-			thing:    thing,
+			thing:    th1,
 			token:    token,
 			err:      nil,
-			location: "001",
+			location: th1.ID,
 		},
 		{
 			desc:     "create new empty thing",
 			thing:    emptyThing,
 			token:    token,
 			err:      nil,
-			location: "002",
+			location: fmt.Sprintf("%s%012d", uuid.Prefix, 2),
 		},
 		{
 			desc:     "create new thing with empty token",
-			thing:    thing,
+			thing:    th1,
 			token:    "",
 			err:      createError(sdk.ErrFailedCreation, http.StatusUnauthorized),
 			location: "",
 		},
 		{
 			desc:     "create new thing with invalid token",
-			thing:    thing,
+			thing:    th1,
 			token:    wrongValue,
 			err:      createError(sdk.ErrFailedCreation, http.StatusUnauthorized),
 			location: "",
@@ -127,8 +126,16 @@ func TestCreateThings(t *testing.T) {
 	mainfluxSDK := sdk.NewSDK(sdkConf)
 
 	things := []sdk.Thing{
-		sdk.Thing{ID: "001", Name: "1", Key: "1"},
-		sdk.Thing{ID: "002", Name: "2", Key: "2"},
+		th1,
+		th2,
+	}
+	thExtID := []sdk.Thing {
+		sdk.Thing{ID: th1.ID, Name: "1", Key: "1", Metadata:metadata},
+		sdk.Thing{ID: th2.ID, Name: "2", Key: "2", Metadata:metadata},
+	}
+	thWrongExtID := []sdk.Thing {
+		sdk.Thing{ID: "b0aa-000000000001", Name: "1", Key: "1", Metadata:metadata},
+		sdk.Thing{ID: "b0aa-000000000002", Name: "2", Key: "2", Metadata:metadata2},
 	}
 
 	cases := []struct {
@@ -166,6 +173,20 @@ func TestCreateThings(t *testing.T) {
 			err:    createError(sdk.ErrFailedCreation, http.StatusUnauthorized),
 			res:    []sdk.Thing{},
 		},
+		{
+			desc:   "create new things with external UUID",
+			things: thExtID,
+			token:  token,
+			err:    nil,
+			res:    things,
+		},
+		{
+			desc:   "create new things with wrong external UUID",
+			things: thWrongExtID,
+			token:  token,
+			err:     createError(sdk.ErrFailedCreation, http.StatusBadRequest),
+			res:    []sdk.Thing{},
+		},
 	}
 	for _, tc := range cases {
 		res, err := mainfluxSDK.CreateThings(tc.things, tc.token)
@@ -189,9 +210,9 @@ func TestThing(t *testing.T) {
 	}
 
 	mainfluxSDK := sdk.NewSDK(sdkConf)
-	id, err := mainfluxSDK.CreateThing(thing, token)
+	id, err := mainfluxSDK.CreateThing(th1, token)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
-	thing.Key = fmt.Sprintf("%s%012d", keyPrefix, 2)
+	th1.Key = fmt.Sprintf("%s%012d", uuid.Prefix, 1)
 
 	cases := []struct {
 		desc     string
@@ -205,7 +226,7 @@ func TestThing(t *testing.T) {
 			thID:     id,
 			token:    token,
 			err:      nil,
-			response: thing,
+			response: th1,
 		},
 		{
 			desc:     "get non-existent thing",
@@ -244,10 +265,12 @@ func TestThings(t *testing.T) {
 
 	mainfluxSDK := sdk.NewSDK(sdkConf)
 	for i := 1; i < 101; i++ {
-		th := sdk.Thing{ID: fmt.Sprintf("%03d", i), Name: "test_device", Metadata: metadata}
+		id := fmt.Sprintf("%s%012d", chPrefix, i)
+		name := fmt.Sprintf("test-%d", i)
+		th := sdk.Thing{ID: id, Name: name, Metadata: metadata}
 		_, err := mainfluxSDK.CreateThing(th, token)
 		require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
-		th.Key = fmt.Sprintf("%s%012d", keyPrefix, 2*i)
+		th.Key = fmt.Sprintf("%s%012d", uuid.Prefix, i)
 		things = append(things, th)
 	}
 
@@ -336,11 +359,13 @@ func TestThingsByChannel(t *testing.T) {
 	var thsDiscoNum = 1
 	var things []sdk.Thing
 	for i := 1; i < n+1; i++ {
+		id := fmt.Sprintf("%s%012d", chPrefix, i)
+		name := fmt.Sprintf("test-%d", i)
 		th := sdk.Thing{
-			ID:       fmt.Sprintf("%03d", i),
-			Name:     "test_device",
+			ID:       id,
+			Name:     name,
 			Metadata: metadata,
-			Key:      fmt.Sprintf("%s%012d", keyPrefix, 2*i+1),
+			Key:      fmt.Sprintf("%s%012d", uuid.Prefix, 2*i+1),
 		}
 		tid, err := mainfluxSDK.CreateThing(th, token)
 		require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
@@ -463,9 +488,9 @@ func TestUpdateThing(t *testing.T) {
 	}
 
 	mainfluxSDK := sdk.NewSDK(sdkConf)
-	id, err := mainfluxSDK.CreateThing(thing, token)
+	id, err := mainfluxSDK.CreateThing(th1, token)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
-	thing.Name = "test2"
+	th1.Name = "test2"
 
 	cases := []struct {
 		desc  string
@@ -542,7 +567,7 @@ func TestDeleteThing(t *testing.T) {
 	}
 
 	mainfluxSDK := sdk.NewSDK(sdkConf)
-	id, err := mainfluxSDK.CreateThing(thing, token)
+	id, err := mainfluxSDK.CreateThing(th1, token)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
 	cases := []struct {
@@ -610,13 +635,13 @@ func TestConnectThing(t *testing.T) {
 	}
 
 	mainfluxSDK := sdk.NewSDK(sdkConf)
-	thingID, err := mainfluxSDK.CreateThing(thing, token)
+	thingID, err := mainfluxSDK.CreateThing(th1, token)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
-	chanID1, err := mainfluxSDK.CreateChannel(channel, token)
+	chanID1, err := mainfluxSDK.CreateChannel(ch2, token)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
-	chanID2, err := mainfluxSDK.CreateChannel(channel, otherToken)
+	chanID2, err := mainfluxSDK.CreateChannel(ch3, otherToken)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
 	cases := []struct {
@@ -711,13 +736,13 @@ func TestConnect(t *testing.T) {
 	}
 
 	mainfluxSDK := sdk.NewSDK(sdkConf)
-	thingID, err := mainfluxSDK.CreateThing(thing, token)
+	thingID, err := mainfluxSDK.CreateThing(th1, token)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
-	chanID1, err := mainfluxSDK.CreateChannel(channel, token)
+	chanID1, err := mainfluxSDK.CreateChannel(ch2, token)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
-	chanID2, err := mainfluxSDK.CreateChannel(channel, otherToken)
+	chanID2, err := mainfluxSDK.CreateChannel(ch3, otherToken)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
 	cases := []struct {
@@ -814,10 +839,10 @@ func TestDisconnectThing(t *testing.T) {
 
 	mainfluxSDK := sdk.NewSDK(sdkConf)
 
-	thingID, err := mainfluxSDK.CreateThing(thing, token)
+	thingID, err := mainfluxSDK.CreateThing(th1, token)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
-	chanID1, err := mainfluxSDK.CreateChannel(channel, token)
+	chanID1, err := mainfluxSDK.CreateChannel(ch2, token)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
 	conIDs := sdk.ConnectionIDs{
@@ -827,7 +852,7 @@ func TestDisconnectThing(t *testing.T) {
 	err = mainfluxSDK.Connect(conIDs, token)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
-	chanID2, err := mainfluxSDK.CreateChannel(channel, otherToken)
+	chanID2, err := mainfluxSDK.CreateChannel(ch2, otherToken)
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 
 	cases := []struct {

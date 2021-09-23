@@ -36,6 +36,7 @@ const (
 	channelCreate = channelPrefix + "create"
 	channelUpdate = channelPrefix + "update"
 	channelRemove = channelPrefix + "remove"
+	Prefix        = "fe6b4e92-cc98-425e-b0aa-"
 )
 
 func newService(tokens map[string]string) things.Service {
@@ -72,7 +73,7 @@ func TestCreateThings(t *testing.T) {
 			key: token,
 			err: nil,
 			event: map[string]interface{}{
-				"id":        "001",
+				"id":        "123e4567-e89b-12d3-a456-000000000001",
 				"name":      "a",
 				"owner":     email,
 				"metadata":  "{\"test\":\"test\"}",
@@ -298,7 +299,7 @@ func TestCreateChannels(t *testing.T) {
 			key:  token,
 			err:  nil,
 			event: map[string]interface{}{
-				"id":        "001",
+				"id":        "123e4567-e89b-12d3-a456-000000000001",
 				"name":      "a",
 				"metadata":  "{\"test\":\"test\"}",
 				"owner":     email,

@@ -35,6 +35,7 @@ const (
 	nameKey     = "name"
 	ascKey      = "asc"
 	descKey     = "desc"
+	prefix      = "fe6b4e92-cc98-425e-b0aa-"
 )
 
 var (
@@ -126,7 +127,7 @@ func TestCreateThing(t *testing.T) {
 			contentType: contentType,
 			auth:        token,
 			status:      http.StatusCreated,
-			location:    "/things/001",
+			location:    fmt.Sprintf("/things/%s%012d", uuid.Prefix, 1),
 		},
 		{
 			desc:        "add thing with existing key",
@@ -142,7 +143,7 @@ func TestCreateThing(t *testing.T) {
 			contentType: contentType,
 			auth:        token,
 			status:      http.StatusCreated,
-			location:    "/things/002",
+			location:    fmt.Sprintf("/things/%s%012d", uuid.Prefix, 3),
 		},
 		{
 			desc:        "add thing with invalid auth token",
@@ -644,7 +645,10 @@ func TestListThings(t *testing.T) {
 
 	data := []thingRes{}
 	for i := 0; i < 100; i++ {
-		ths, err := svc.CreateThings(context.Background(), token, thing)
+		id := fmt.Sprintf("%s%012d", prefix, i + 1)
+		thing1 := thing
+		thing1.ID = id
+		ths, err := svc.CreateThings(context.Background(), token, thing1)
 		require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 		th := ths[0]
 		data = append(data, thingRes{
@@ -881,7 +885,8 @@ func TestSearchThings(t *testing.T) {
 	data := []thingRes{}
 	for i := 0; i < 100; i++ {
 		name := "name_" + fmt.Sprintf("%03d", i+1)
-		ths, err := svc.CreateThings(context.Background(), token, things.Thing{Name: name, Metadata: map[string]interface{}{"test": name}})
+		id := fmt.Sprintf("%s%012d", prefix, i + 1)
+		ths, err := svc.CreateThings(context.Background(), token, things.Thing{ID: id, Name: name, Metadata: map[string]interface{}{"test": name}})
 		require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 		th := ths[0]
 		data = append(data, thingRes{
@@ -1048,7 +1053,10 @@ func TestListThingsByChannel(t *testing.T) {
 
 	data := []thingRes{}
 	for i := 0; i < 101; i++ {
-		ths, err := svc.CreateThings(context.Background(), token, thing)
+		id := fmt.Sprintf("%s%012d", prefix, i + 1)
+		thing1 := thing
+		thing1.ID = id
+		ths, err := svc.CreateThings(context.Background(), token, thing1)
 		require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 		th := ths[0]
 		err = svc.Connect(context.Background(), token, []string{ch.ID}, []string{th.ID})
@@ -1296,7 +1304,7 @@ func TestCreateChannel(t *testing.T) {
 			contentType: contentType,
 			auth:        token,
 			status:      http.StatusCreated,
-			location:    "/channels/001",
+			location:    fmt.Sprintf("/channels/%s%012d", uuid.Prefix, 1),
 		},
 		{
 			desc:        "create new channel with invalid token",
@@ -1328,7 +1336,7 @@ func TestCreateChannel(t *testing.T) {
 			contentType: contentType,
 			auth:        token,
 			status:      http.StatusCreated,
-			location:    "/channels/002",
+			location:    fmt.Sprintf("/channels/%s%012d", uuid.Prefix, 2),
 		},
 		{
 			desc:        "create new channel with empty request",
@@ -1899,7 +1907,10 @@ func TestListChannelsByThing(t *testing.T) {
 
 	channels := []channelRes{}
 	for i := 0; i < 101; i++ {
-		chs, err := svc.CreateChannels(context.Background(), token, channel)
+		id := fmt.Sprintf("%s%012d", prefix, i + 1)
+		channel1 := channel
+		channel1.ID = id
+		chs, err := svc.CreateChannels(context.Background(), token, channel1)
 		require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 		ch := chs[0]
 		err = svc.Connect(context.Background(), token, []string{ch.ID}, []string{th.ID})
