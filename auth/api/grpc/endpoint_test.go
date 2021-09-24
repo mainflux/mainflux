@@ -327,6 +327,58 @@ func TestAddPolicy(t *testing.T) {
 	}
 }
 
+func TestDeletePolicy(t *testing.T) {
+	_, loginSecret, err := svc.Issue(context.Background(), "", auth.Key{Type: auth.UserKey, IssuedAt: time.Now(), IssuerID: id, Subject: email})
+	assert.Nil(t, err, fmt.Sprintf("Issuing user key expected to succeed: %s", err))
+
+	authAddr := fmt.Sprintf("localhost:%d", port)
+	conn, _ := grpc.Dial(authAddr, grpc.WithInsecure())
+	client := grpcapi.NewClient(mocktracer.New(), conn, time.Second)
+
+	readRelation := "read"
+	thingID := "thing"
+
+	apr, err := client.AddPolicy(context.Background(), &mainflux.AddPolicyReq{Sub: id, Obj: thingID, Act: readRelation})
+	assert.Nil(t, err, fmt.Sprintf("Adding read policy to user expected to succeed: %s", err))
+	assert.True(t, apr.GetAuthorized(), fmt.Sprintf("Adding read policy expected to make user authorized, expected %v got %v", true, apr.GetAuthorized()))
+
+	cases := []struct {
+		desc     string
+		token    string
+		subject  string
+		object   string
+		relation string
+		dpr      *mainflux.DeletePolicyRes
+		code     codes.Code
+	}{
+		{
+			desc:     "delete valid policy",
+			token:    loginSecret,
+			subject:  id,
+			object:   thingID,
+			relation: readRelation,
+			dpr:      &mainflux.DeletePolicyRes{Deleted: true},
+			code:     codes.OK,
+		},
+		{
+			desc:     "delete invalid policy",
+			token:    loginSecret,
+			subject:  "",
+			object:   "",
+			relation: "",
+			dpr:      &mainflux.DeletePolicyRes{Deleted: false},
+			code:     codes.InvalidArgument,
+		},
+	}
+	for _, tc := range cases {
+		dpr, err := client.DeletePolicy(context.Background(), &mainflux.DeletePolicyReq{Sub: tc.subject, Obj: tc.object, Act: tc.relation})
+		e, ok := status.FromError(err)
+		assert.True(t, ok, "gRPC status can't be extracted from the error")
+		assert.Equal(t, tc.code, e.Code(), fmt.Sprintf("%s: expected %s got %s", tc.desc, tc.code, e.Code()))
+		assert.Equal(t, tc.dpr.GetDeleted(), dpr.GetDeleted(), fmt.Sprintf("%s: expected %v got %v", tc.desc, tc.dpr.GetDeleted(), dpr.GetDeleted()))
+	}
+}
+
 func TestMembers(t *testing.T) {
 	_, token, err := svc.Issue(context.Background(), "", auth.Key{Type: auth.UserKey, IssuedAt: time.Now(), IssuerID: id, Subject: email})
 	assert.Nil(t, err, fmt.Sprintf("Issuing user key expected to succeed: %s", err))

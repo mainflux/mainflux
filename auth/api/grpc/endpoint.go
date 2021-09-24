@@ -85,6 +85,21 @@ func addPolicyEndpoint(svc auth.Service) endpoint.Endpoint {
 	}
 }
 
+func deletePolicyEndpoint(svc auth.Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(deletePolicyReq)
+		if err := req.validate(); err != nil {
+			return deletePolicyRes{}, err
+		}
+
+		err := svc.DeletePolicy(ctx, auth.PolicyReq{Subject: req.Sub, Object: req.Obj, Relation: req.Act})
+		if err != nil {
+			return deletePolicyRes{}, err
+		}
+		return deletePolicyRes{deleted: true}, err
+	}
+}
+
 func assignEndpoint(svc auth.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(assignReq)

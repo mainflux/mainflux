@@ -20,6 +20,10 @@ type addPolicyRes struct {
 	authorized bool
 }
 
+type deletePolicyRes struct {
+	deleted bool
+}
+
 type membersRes struct {
 	total     uint64
 	offset    uint64

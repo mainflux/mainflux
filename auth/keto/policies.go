@@ -61,3 +61,23 @@ func (c policyAgent) AddPolicy(ctx context.Context, pr auth.PolicyReq) error {
 	})
 	return err
 }
+
+func (c policyAgent) DeletePolicy(ctx context.Context, pr auth.PolicyReq) error {
+	trt := c.writer.TransactRelationTuples
+	_, err := trt(context.Background(), &acl.TransactRelationTuplesRequest{
+		RelationTupleDeltas: []*acl.RelationTupleDelta{
+			{
+				Action: acl.RelationTupleDelta_DELETE,
+				RelationTuple: &acl.RelationTuple{
+					Namespace: ketoNamespace,
+					Object:    pr.Object,
+					Relation:  pr.Relation,
+					Subject: &acl.Subject{Ref: &acl.Subject_Id{
+						Id: pr.Subject,
+					}},
+				},
+			},
+		},
+	})
+	return err
+}

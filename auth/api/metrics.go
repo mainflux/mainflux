@@ -80,6 +80,14 @@ func (ms *metricsMiddleware) AddPolicy(ctx context.Context, pr auth.PolicyReq) e
 	return ms.svc.AddPolicy(ctx, pr)
 }
 
+func (ms *metricsMiddleware) DeletePolicy(ctx context.Context, pr auth.PolicyReq) error {
+	defer func(begin time.Time) {
+		ms.counter.With("method", "delete_policy").Add(1)
+		ms.latency.With("method", "delete_policy").Observe(time.Since(begin).Seconds())
+	}(time.Now())
+	return ms.svc.DeletePolicy(ctx, pr)
+}
+
 func (ms *metricsMiddleware) CreateGroup(ctx context.Context, token string, group auth.Group) (gr auth.Group, err error) {
 	defer func(begin time.Time) {
 		ms.counter.With("method", "create_group").Add(1)

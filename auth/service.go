@@ -176,6 +176,10 @@ func (svc service) AddPolicy(ctx context.Context, pr PolicyReq) error {
 	return svc.agent.AddPolicy(ctx, pr)
 }
 
+func (svc service) DeletePolicy(ctx context.Context, pr PolicyReq) error {
+	return svc.agent.DeletePolicy(ctx, pr)
+}
+
 func (svc service) tmpKey(duration time.Duration, key Key) (Key, string, error) {
 	key.ExpiresAt = key.IssuedAt.Add(duration)
 	secret, err := svc.tokenizer.Issue(key)

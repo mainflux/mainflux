@@ -20,12 +20,13 @@ import (
 var _ mainflux.AuthServiceServer = (*grpcServer)(nil)
 
 type grpcServer struct {
-	issue     kitgrpc.Handler
-	identify  kitgrpc.Handler
-	authorize kitgrpc.Handler
-	addPolicy kitgrpc.Handler
-	assign    kitgrpc.Handler
-	members   kitgrpc.Handler
+	issue        kitgrpc.Handler
+	identify     kitgrpc.Handler
+	authorize    kitgrpc.Handler
+	addPolicy    kitgrpc.Handler
+	deletePolicy kitgrpc.Handler
+	assign       kitgrpc.Handler
+	members      kitgrpc.Handler
 }
 
 // NewServer returns new AuthServiceServer instance.
@@ -50,6 +51,11 @@ func NewServer(tracer opentracing.Tracer, svc auth.Service) mainflux.AuthService
 			kitot.TraceServer(tracer, "add_policy")(addPolicyEndpoint(svc)),
 			decodeAddPolicyRequest,
 			encodeAddPolicyResponse,
+		),
+		deletePolicy: kitgrpc.NewServer(
+			kitot.TraceServer(tracer, "delete_policy")(deletePolicyEndpoint(svc)),
+			decodeDeletePolicyRequest,
+			encodeDeletePolicyResponse,
 		),
 		assign: kitgrpc.NewServer(
 			kitot.TraceServer(tracer, "assign")(assignEndpoint(svc)),
@@ -94,6 +100,14 @@ func (s *grpcServer) AddPolicy(ctx context.Context, req *mainflux.AddPolicyReq) 
 		return nil, encodeError(err)
 	}
 	return res.(*mainflux.AddPolicyRes), nil
+}
+
+func (s *grpcServer) DeletePolicy(ctx context.Context, req *mainflux.DeletePolicyReq) (*mainflux.DeletePolicyRes, error) {
+	_, res, err := s.deletePolicy.ServeGRPC(ctx, req)
+	if err != nil {
+		return nil, encodeError(err)
+	}
+	return res.(*mainflux.DeletePolicyRes), nil
 }
 
 func (s *grpcServer) Assign(ctx context.Context, token *mainflux.Assignment) (*empty.Empty, error) {
@@ -155,6 +169,16 @@ func encodeAddPolicyResponse(_ context.Context, grpcRes interface{}) (interface{
 func decodeAssignRequest(_ context.Context, grpcReq interface{}) (interface{}, error) {
 	req := grpcReq.(*mainflux.Token)
 	return assignReq{token: req.GetValue()}, nil
+}
+
+func decodeDeletePolicyRequest(_ context.Context, grpcReq interface{}) (interface{}, error) {
+	req := grpcReq.(*mainflux.DeletePolicyReq)
+	return deletePolicyReq{Sub: req.GetSub(), Obj: req.GetObj(), Act: req.GetAct()}, nil
+}
+
+func encodeDeletePolicyResponse(_ context.Context, grpcRes interface{}) (interface{}, error) {
+	res := grpcRes.(deletePolicyRes)
+	return &mainflux.DeletePolicyRes{Deleted: res.deleted}, nil
 }
 
 func decodeMembersRequest(_ context.Context, grpcReq interface{}) (interface{}, error) {

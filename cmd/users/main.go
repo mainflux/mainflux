@@ -74,6 +74,8 @@ const (
 	defAuthURL     = "localhost:8181"
 	defAuthTimeout = "1s"
 
+	defOnlyAdminCreatesUser = "" // If empty, everybody can create a user. Otherwise, only admin can create a user.
+
 	envLogLevel      = "MF_USERS_LOG_LEVEL"
 	envDBHost        = "MF_USERS_DB_HOST"
 	envDBPort        = "MF_USERS_DB_PORT"
@@ -109,24 +111,27 @@ const (
 	envAuthCACerts = "MF_AUTH_CA_CERTS"
 	envAuthURL     = "MF_AUTH_GRPC_URL"
 	envAuthTimeout = "MF_AUTH_GRPC_TIMEOUT"
+
+	envOnlyAdminCreatesUser = "MF_ONLY_ADMIN_CREATES_USER"
 )
 
 type config struct {
-	logLevel      string
-	dbConfig      postgres.Config
-	emailConf     email.Config
-	httpPort      string
-	serverCert    string
-	serverKey     string
-	jaegerURL     string
-	resetURL      string
-	authTLS       bool
-	authCACerts   string
-	authURL       string
-	authTimeout   time.Duration
-	adminEmail    string
-	adminPassword string
-	passRegex     *regexp.Regexp
+	logLevel         string
+	dbConfig         postgres.Config
+	emailConf        email.Config
+	httpPort         string
+	serverCert       string
+	serverKey        string
+	jaegerURL        string
+	resetURL         string
+	authTLS          bool
+	authCACerts      string
+	authURL          string
+	authTimeout      time.Duration
+	adminEmail       string
+	adminPassword    string
+	passRegex        *regexp.Regexp
+	adminCreatesUser string
 }
 
 func main() {
@@ -208,21 +213,22 @@ func loadConfig() config {
 	}
 
 	return config{
-		logLevel:      mainflux.Env(envLogLevel, defLogLevel),
-		dbConfig:      dbConfig,
-		emailConf:     emailConf,
-		httpPort:      mainflux.Env(envHTTPPort, defHTTPPort),
-		serverCert:    mainflux.Env(envServerCert, defServerCert),
-		serverKey:     mainflux.Env(envServerKey, defServerKey),
-		jaegerURL:     mainflux.Env(envJaegerURL, defJaegerURL),
-		resetURL:      mainflux.Env(envTokenResetEndpoint, defTokenResetEndpoint),
-		authTLS:       tls,
-		authCACerts:   mainflux.Env(envAuthCACerts, defAuthCACerts),
-		authURL:       mainflux.Env(envAuthURL, defAuthURL),
-		authTimeout:   authTimeout,
-		adminEmail:    mainflux.Env(envAdminEmail, defAdminEmail),
-		adminPassword: mainflux.Env(envAdminPassword, defAdminPassword),
-		passRegex:     passRegex,
+		logLevel:         mainflux.Env(envLogLevel, defLogLevel),
+		dbConfig:         dbConfig,
+		emailConf:        emailConf,
+		httpPort:         mainflux.Env(envHTTPPort, defHTTPPort),
+		serverCert:       mainflux.Env(envServerCert, defServerCert),
+		serverKey:        mainflux.Env(envServerKey, defServerKey),
+		jaegerURL:        mainflux.Env(envJaegerURL, defJaegerURL),
+		resetURL:         mainflux.Env(envTokenResetEndpoint, defTokenResetEndpoint),
+		authTLS:          tls,
+		authCACerts:      mainflux.Env(envAuthCACerts, defAuthCACerts),
+		authURL:          mainflux.Env(envAuthURL, defAuthURL),
+		authTimeout:      authTimeout,
+		adminEmail:       mainflux.Env(envAdminEmail, defAdminEmail),
+		adminPassword:    mainflux.Env(envAdminPassword, defAdminPassword),
+		passRegex:        passRegex,
+		adminCreatesUser: mainflux.Env(envOnlyAdminCreatesUser, defOnlyAdminCreatesUser),
 	}
 
 }
@@ -317,6 +323,19 @@ func newService(db *sqlx.DB, tracer opentracing.Tracer, auth mainflux.AuthServic
 		logger.Error("failed to create admin user: " + err.Error())
 		os.Exit(1)
 	}
+
+	if c.adminCreatesUser != "" {
+		dpr, err := auth.DeletePolicy(context.Background(), &mainflux.DeletePolicyReq{Obj: "user", Act: "create", Sub: "*"})
+		if err != nil {
+			logger.Error("failed to delete a policy: " + err.Error())
+			os.Exit(1)
+		}
+		if !dpr.GetDeleted() {
+			logger.Error("deleting a policy expected to succeed.")
+			os.Exit(1)
+		}
+	}
+
 	return svc
 }
 

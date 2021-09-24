@@ -48,6 +48,10 @@ func (svc serviceMock) AddPolicy(ctx context.Context, in *mainflux.AddPolicyReq,
 	panic("not implemented")
 }
 
+func (svc serviceMock) DeletePolicy(ctx context.Context, in *mainflux.DeletePolicyReq, opts ...grpc.CallOption) (*mainflux.DeletePolicyRes, error) {
+	panic("not implemented")
+}
+
 func (svc serviceMock) Members(ctx context.Context, req *mainflux.MembersReq, _ ...grpc.CallOption) (r *mainflux.MembersRes, err error) {
 	panic("not implemented")
 }

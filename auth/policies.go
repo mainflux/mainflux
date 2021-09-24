@@ -29,6 +29,9 @@ type Authz interface {
 	// AddPolicy, `subject` has a `relation` on `object`. Returns a non-nil
 	// error in case of failures.
 	AddPolicy(ctx context.Context, pr PolicyReq) error
+
+	// DeletePolicy removes a policy.
+	DeletePolicy(ctx context.Context, pr PolicyReq) error
 }
 
 // PolicyAgent facilitates the communication to authorization
@@ -44,4 +47,7 @@ type PolicyAgent interface {
 	// AddPolicy, `subject` has a `relation` on `object`. Returns a non-nil
 	// error in case of failures.
 	AddPolicy(ctx context.Context, pr PolicyReq) error
+
+	// DeletePolicy removes a policy.
+	DeletePolicy(ctx context.Context, pr PolicyReq) error
 }

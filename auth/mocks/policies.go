@@ -38,3 +38,8 @@ func (k *policyAgentMock) AddPolicy(ctx context.Context, pr auth.PolicyReq) erro
 	k.authzDB[pr.Subject] = append(k.authzDB[pr.Subject], MockSubjectSet{Object: pr.Object, Relation: pr.Relation})
 	return nil
 }
+
+func (k *policyAgentMock) DeletePolicy(ctx context.Context, pr auth.PolicyReq) error {
+	k.authzDB[pr.Subject] = append(k.authzDB[pr.Subject], MockSubjectSet{Object: pr.Object, Relation: pr.Relation})
+	return nil
+}
