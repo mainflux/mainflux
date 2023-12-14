@@ -1,3 +1,10 @@
+# WARNING - MIGRATION ONGOING
+Mainflux project is being slowly migrated under [Abstract Machines](https://www.abstractmachines.fr/) company, created and fully owned by the main Mainflux author [@drasko][drasko].
+
+You will find the current development on the [Abstract Machines GitHub](https://github.com/absmach).
+
+Once migration and rebrand is fully finished, this repo will be archived and up-to-date info provided.
+
 # Mainflux
 
 [![Build Status](https://mainflux.semaphoreci.com/badges/mainflux/branches/master.svg?style=shields)](https://mainflux.semaphoreci.com/projects/mainflux)
